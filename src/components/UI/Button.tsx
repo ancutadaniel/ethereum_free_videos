@@ -1,30 +1,41 @@
-import React, { ButtonHTMLAttributes, ReactNode } from 'react';
+import React, { ButtonHTMLAttributes, ReactNode } from "react";
+import { useTheme } from "../../contexts/ThemeContext";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-    children: ReactNode;
-    textOnly?: boolean; 
-    className?: string; 
-    theme?: string;
-    type?: 'button' | 'submit' | 'reset';
+  children: ReactNode;
+  textOnly?: boolean;
+  className?: string;
 }
 
-const Button: React.FC<ButtonProps> = ({ children, theme, type = 'button', className = '', ...props }) => {
-    // Determine button style based on the theme
-    const buttonStyle = theme === 'light'
-        ? "bg-blue-500 text-white hover:bg-blue-400"
-        : "bg-gray-800 text-yellow-300 hover:bg-gray-700";
+const Button: React.FC<ButtonProps> = ({
+  children,
+  textOnly = false,
+  className = "",
+  type = "button",
+  ...props
+}) => {
+  const { theme } = useTheme();
 
-    let cssClasses = type;
-   cssClasses += ` ${className} ${buttonStyle} pb-1 pt-1 pl-2 pr-2 rounded-lg shadow-lg transition-all duration-300`;
+  // Basic styles for all buttons
+  const baseStyle =
+    "px-4 py-2 rounded-lg shadow-lg transition-all duration-300";
+  // Conditional theme-based styles, adjusted based on the context
+  const themeStyle =
+    theme === "light"
+      ? "bg-red-500 text-white hover:bg-blue-400 focus:ring-blue-300"
+      : "bg-green-800 text-yellow-300 hover:bg-gray-700 focus:ring-gray-500";
 
-    // Additional classes for positioning the button in the top right
-    const positioning = "absolute top-4 right-4";
+  // Text-only button minimal styling
+  const textOnlyStyle = textOnly ? "bg-transparent shadow-none" : themeStyle;
 
-    return (
-        <button className={`${cssClasses} ${positioning}`} {...props}>
-            {children}
-        </button>
-    );
+  // Combining all class names
+  const cssClasses = `${baseStyle} ${textOnlyStyle} ${className}`;
+
+  return (
+    <button type={type} className={cssClasses} {...props}>
+      {children}
+    </button>
+  );
 };
 
 export default Button;
