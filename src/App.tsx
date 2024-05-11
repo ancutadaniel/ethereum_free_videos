@@ -1,22 +1,12 @@
-import Button from "./components/UI/Button";
-import useTheme from "./hooks/useTheme";
-import useBlockchain from "./hooks/useBlockchain";
-import Wallet from "./components/wallet/Wallet";
+// App.tsx
+import React from "react";
+import Header from "./components/Header/Header";
 
-const App = () => {
-  const { theme, toggleTheme, themeIcon } = useTheme();
-  const { provider, contract } = useBlockchain();
-
-  console.log({ provider, contract, themeIcon });
-
+const App: React.FC = () => {
   return (
     <main>
-      <div className={`h-screen bg-white dark:bg-slate-500`}>
-        <Button onClick={toggleTheme} theme={theme}>
-          {themeIcon}
-        </Button>
-        <Wallet />
-      </div>
+      <Header />
+      {/* remaining components */}
     </main>
   );
 };

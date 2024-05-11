@@ -4,17 +4,23 @@ import "./index.css";
 import App from "./App";
 import reportWebVitals from "./reportWebVitals";
 
-import { Web3OnboardProvider } from "@web3-onboard/react";
 import onboard from "./web3/onboard";
+import { Web3OnboardProvider } from "@web3-onboard/react";
+import { ThemeProvider } from "./contexts/ThemeContext";
+import { WalletProvider } from "./contexts/WalletContext";
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
 );
 root.render(
   <React.StrictMode>
-    <Web3OnboardProvider web3Onboard={onboard}>
-      <App />
-    </Web3OnboardProvider>
+    <ThemeProvider>
+      <Web3OnboardProvider web3Onboard={onboard}>
+        <WalletProvider>
+        <App />
+        </WalletProvider>
+      </Web3OnboardProvider>
+    </ThemeProvider>
   </React.StrictMode>
 );
 

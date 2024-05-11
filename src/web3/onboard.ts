@@ -37,11 +37,11 @@ const onboard = Onboard({
   accountCenter: {
     desktop: {
       enabled: true,
-      position: "topRight",
+      position: "bottomRight",
     },
     mobile: {
       enabled: true,
-      position: "topRight",
+      position: "bottomRight",
     },
   },
 });
