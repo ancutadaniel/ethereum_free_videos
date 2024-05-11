@@ -1,28 +1,18 @@
 import React, { useState, FC } from "react";
-import { useTheme } from "../../contexts/ThemeContext";
-import Button from "../UI/Button";
 import MenuButton from "../MenuButton/MenuButton";
 import WalletConnectButton from "../Wallet/WalletConnectButton";
 import logo from "../../assets/logo.webp";
+import ThemeToggleButton from "../UI/ThemeToggleButton";
 
 const Header: FC = () => {
-  const { themeIcon, toggleTheme } = useTheme();
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
 
   const toggleMenu = (): void => setIsMenuOpen(!isMenuOpen);
 
-  // Subcomponent for the theme toggle button to avoid repetition
-  const ThemeToggleButton = () => (
-    <Button
-      onClick={toggleTheme}
-      className="bg-secondary-dark text-yellow-300 dark:text-yellow-300 dark:bg-transparent"
-    >
-      {themeIcon}
-    </Button>
-  );
-
   return (
-    <header className="bg-background-default dark:bg-background-dark shadow-md relative">
+    <header className="bg-background-default dark:bg-background-dark shadow-md relative h-16">
+      {" "}
+      {/* Example fixed height */}
       <div className="container mx-auto flex justify-between items-center p-4">
         <img src={logo} alt="Logo" className="h-10 w-auto" />
 

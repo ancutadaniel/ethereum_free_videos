@@ -1,12 +1,26 @@
 // App.tsx
-import React from "react";
+import React, { useState } from "react";
 import Header from "./components/Header/Header";
+import Sidebar from "./components/Sidebar/Sidebar";
+import Dashboard from "./components/Dashboard/Dashboard";
 
 const App: React.FC = () => {
+  const [selectedItem, setSelectedItem] = useState("None");
+
+  const handleSelect = (item: string) => {
+    setSelectedItem(item);
+  };
+
   return (
-    <main>
+    <main className="flex flex-col h-screen">
       <Header />
-      {/* remaining components */}
+      <div className="flex flex-grow">
+        <Sidebar onSelect={handleSelect} />
+        <Dashboard
+          selectedItem={selectedItem}
+          className="flex-grow bg-gray-100"
+        />
+      </div>
     </main>
   );
 };
