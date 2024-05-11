@@ -1,33 +1,30 @@
-// WalletConnectButton.tsx
 import { FC } from "react";
 import Button from "../UI/Button";
-import { useConnectWallet } from "@web3-onboard/react";
+import { useWallet } from "../../contexts/WalletContext";
 
 const WalletConnectButton: FC = () => {
-  const [{ wallet }, connect, disconnect] = useConnectWallet();
-  const walletAddress = wallet?.accounts[0]?.address || null;
-
-  const handleButtonClick = () => {
-    if (!walletAddress) {
-      connect();
-    }
-  };
+  const { account, connectWallet, disconnectWallet } = useWallet();
 
   return (
     <>
+      {account && account.balance && (
+        <div className="flex flex-col items-center">
+          <p className="text-white">Balance: {account.balance["ETH"]} ETH</p>
+        </div>
+      )}
       <Button
-        onClick={handleButtonClick}
+        onClick={() => (account ? disconnectWallet() : connectWallet())}
         className="dark:bg-accent-btn text-white m-2 md:mx-0 md:my-0"
-        disabled={!!walletAddress}
+        disabled={!!account}
       >
-        {walletAddress
-          ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
+        {account
+          ? `${account.address.slice(0, 6)}...${account.address.slice(-4)}`
           : "Connect Wallet"}
       </Button>
-      {wallet && (
+      {account && (
         <Button
-          onClick={() => disconnect(wallet)}
-          className="bg-secondary-dark text-white mt-2 mr-2 ml-2 mb-2 md:mt-0 md:mr-0 md:ml-0 md:mb-0" 
+          onClick={disconnectWallet}
+          className="bg-secondary-dark text-white mt-2 mr-2 ml-2 mb-2 md:mt-0 md:mr-0 md:ml-0 md:mb-0"
         >
           Disconnect
         </Button>

@@ -7,6 +7,7 @@ import reportWebVitals from "./reportWebVitals";
 import onboard from "./web3/onboard";
 import { Web3OnboardProvider } from "@web3-onboard/react";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { WalletProvider } from "./contexts/WalletContext";
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
@@ -15,7 +16,9 @@ root.render(
   <React.StrictMode>
     <ThemeProvider>
       <Web3OnboardProvider web3Onboard={onboard}>
+        <WalletProvider>
         <App />
+        </WalletProvider>
       </Web3OnboardProvider>
     </ThemeProvider>
   </React.StrictMode>
