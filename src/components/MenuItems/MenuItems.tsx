@@ -24,13 +24,14 @@ const MenuItems: React.FC<MenuItemsProps> = ({
   };
 
   return (
-    <ul className="overflow-auto ">
+    <ul className="overflow-auto m-2 md:m-0">
       <Accordion
         title="Dashboard"
         isOpen={selectedAccordion === 1}
         onClick={() => handleAccordion(1)}
+        className="mb-4"
       >
-        <ul className="space-y-2">
+        <ul className="space-y-2 text-white md:text-black md:dark:text-white">
           <li onClick={() => onSelectHandler("Analytics")}>Analytics</li>
           <li onClick={() => onSelectHandler("Reporting")}>Reporting</li>
           <li onClick={() => onSelectHandler("Projects")}>Projects</li>
@@ -40,8 +41,9 @@ const MenuItems: React.FC<MenuItemsProps> = ({
         title="E-Commerce"
         isOpen={selectedAccordion === 2}
         onClick={() => handleAccordion(2)}
+        className="mb-2"
       >
-        <ul className="space-y-2">
+        <ul className="space-y-2 text-white md:text-black md:dark:text-white">
           <li onClick={() => onSelectHandler("Orders")}>Orders</li>
           <li onClick={() => onSelectHandler("Products")}>Products</li>
         </ul>
