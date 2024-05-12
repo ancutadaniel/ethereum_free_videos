@@ -47,6 +47,7 @@ const Header: FC<HeaderProps> = ({ onSelect }) => {
             onSelect={onSelect}
             selectedAccordion={selectedAccordion}
             setSelectedAccordion={setSelectedAccordion}
+            toggleMenu={toggleMenu}
           />
         </div>
       </div>

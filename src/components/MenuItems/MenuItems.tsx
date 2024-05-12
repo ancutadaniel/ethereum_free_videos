@@ -5,15 +5,22 @@ interface MenuItemsProps {
   onSelect: (item: string) => void;
   selectedAccordion: number | null;
   setSelectedAccordion: (value: number | null) => void;
+  toggleMenu?: () => void;
 }
 
 const MenuItems: React.FC<MenuItemsProps> = ({
   onSelect,
   selectedAccordion,
   setSelectedAccordion,
+  toggleMenu,
 }) => {
   const handleAccordion = (index: number) => {
     setSelectedAccordion(selectedAccordion === index ? null : index);
+  };
+
+  const onSelectHandler = (item: string) => {
+    onSelect(item);
+    if (toggleMenu) toggleMenu();
   };
 
   return (
@@ -24,9 +31,9 @@ const MenuItems: React.FC<MenuItemsProps> = ({
         onClick={() => handleAccordion(1)}
       >
         <ul className="space-y-2">
-          <li onClick={() => onSelect("Analytics")}>Analytics</li>
-          <li onClick={() => onSelect("Reporting")}>Reporting</li>
-          <li onClick={() => onSelect("Projects")}>Projects</li>
+          <li onClick={() => onSelectHandler("Analytics")}>Analytics</li>
+          <li onClick={() => onSelectHandler("Reporting")}>Reporting</li>
+          <li onClick={() => onSelectHandler("Projects")}>Projects</li>
         </ul>
       </Accordion>
       <Accordion
@@ -35,8 +42,8 @@ const MenuItems: React.FC<MenuItemsProps> = ({
         onClick={() => handleAccordion(2)}
       >
         <ul className="space-y-2">
-          <li onClick={() => onSelect("Orders")}>Orders</li>
-          <li onClick={() => onSelect("Products")}>Products</li>
+          <li onClick={() => onSelectHandler("Orders")}>Orders</li>
+          <li onClick={() => onSelectHandler("Products")}>Products</li>
         </ul>
       </Accordion>
     </ul>
