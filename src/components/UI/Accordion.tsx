@@ -1,6 +1,7 @@
 import React from 'react';
 import { ReactComponent as UpArrow } from '../../assets/UpArrow.svg';
 import { ReactComponent as DownArrow } from '../../assets/DownArrow.svg';
+import Button from './Button';
 
 
 interface AccordionProps {
@@ -17,14 +18,14 @@ const Accordion: React.FC<AccordionProps> = ({
   onClick,
 }) => {
   return (
-    <div>
-      <button
+    <div className='m-2 mt-1 mb-4'>
+      <Button
         onClick={onClick}
-        className="flex justify-between items-center w-full px-4 py-2 text-left text-sm text-gray-700 bg-gray-200 rounded hover:bg-gray-300"
+        className="flex justify-between items-center w-full px-4 py-2 text-left text-sm text-white bg-gray-200 rounded hover:bg-gray-300 "
       >
         {title}
         {isOpen ? <UpArrow /> : <DownArrow />}
-      </button>
+      </Button>
       {isOpen && <div className="ml-4">{children}</div>}
     </div>
   );

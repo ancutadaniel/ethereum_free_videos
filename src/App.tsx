@@ -13,7 +13,7 @@ const App: React.FC = () => {
 
   return (
     <main className="flex flex-col h-screen">
-      <Header />
+      <Header onSelect={handleSelect} />
       <div className="flex flex-grow">
         <Sidebar onSelect={handleSelect} />
         <Dashboard
