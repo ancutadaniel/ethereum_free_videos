@@ -9,7 +9,9 @@ const WalletConnectButton: FC = () => {
     <>
       {account && account.balance && (
         <div className="flex flex-col items-center">
-          <p className="text-white">Balance: {account.balance["ETH"]} ETH</p>
+          <p className="text-blue-700 dark:text-white">
+            Balance: {account.balance["ETH"]} ETH
+          </p>
         </div>
       )}
       <Button

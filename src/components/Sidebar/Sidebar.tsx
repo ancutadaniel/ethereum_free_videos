@@ -25,7 +25,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onSelect }) => {
       <div>
         <Button
           onClick={toggleSidebar}
-          className="w-full text-center text-sm text-white bg-gray-200 rounded hover:bg-gray-300 mb-4"
+          className="w-full text-center text-white bg-gray-200 rounded hover:bg-gray-300 mb-4"
         >
           {isOpen ? "Close" : "Open"}
         </Button>
