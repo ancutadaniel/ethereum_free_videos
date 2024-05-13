@@ -1,16 +1,28 @@
-import Button from './components/UI/Button';
-import useTheme from './hooks/useTheme';  
+// App.tsx
+import React, { useState } from "react";
+import Header from "./components/Header/Header";
+import Sidebar from "./components/Sidebar/Sidebar";
+import Dashboard from "./components/Dashboard/Dashboard";
 
-const App = () => {
-  const { theme, toggleTheme, themeIcon } = useTheme();
+const App: React.FC = () => {
+  const [selectedItem, setSelectedItem] = useState("None");
+
+  const handleSelect = (item: string) => {
+    setSelectedItem(item);
+  };
 
   return (
-    <div className={`h-screen bg-white dark:bg-slate-500`}>
-      <Button onClick={toggleTheme} theme={theme}>
-        {themeIcon}
-      </Button>
-    </div>
+    <main className="flex flex-col h-screen">
+      <Header onSelect={handleSelect} />
+      <div className="flex flex-grow">
+        <Sidebar onSelect={handleSelect} />
+        <Dashboard
+          selectedItem={selectedItem}
+          className="flex-grow bg-gray-100"
+        />
+      </div>
+    </main>
   );
-}
+};
 
 export default App;

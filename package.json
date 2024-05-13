@@ -1,5 +1,5 @@
 {
-  "name": "ethereum_youtube",
+  "name": "ethereum_free_videos",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
@@ -10,6 +10,11 @@
     "@types/node": "^16.7.13",
     "@types/react": "^18.0.0",
     "@types/react-dom": "^18.0.0",
+    "@web3-onboard/core": "^2.21.6",
+    "@web3-onboard/injected-wallets": "^2.10.16",
+    "@web3-onboard/react": "^2.8.17",
+    "@web3-onboard/transaction-preview": "^2.0.9",
+    "@web3-onboard/walletconnect": "^2.5.5",
     "axios": "^1.6.8",
     "buffer": "^6.0.3",
     "dotenv": "^16.4.5",
@@ -18,13 +23,17 @@
     "react-dom": "^18.3.1",
     "react-scripts": "5.0.1",
     "typescript": "^5.4.5",
+    "vconsole": "^3.15.1",
     "web-vitals": "^2.1.0"
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "test": "npx hardhat test",
+    "eject": "react-scripts eject",
+    "hardhat": "npx hardhat node",
+    "sepolia": "npx hardhat run scripts/deploy.js --network sepolia",
+    "localhost": "npx hardhat run scripts/deploy.js --network localhost"
   },
   "eslintConfig": {
     "extends": [
@@ -65,6 +74,7 @@
     "tailwindcss": "^3.4.3",
     "ts-node": "^10.9.2",
     "typechain": "^8.3.2",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "util": "^0.12.5"
   }
 }
