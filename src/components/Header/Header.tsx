@@ -31,8 +31,8 @@ const Header: FC<HeaderProps> = ({ onSelect }) => {
 
           {/* Desktop specific elements */}
           <div className="hidden md:flex items-center space-x-4">
-            <ThemeToggleButton />
             <WalletConnectButton />
+            <ThemeToggleButton />
           </div>
         </div>
 
