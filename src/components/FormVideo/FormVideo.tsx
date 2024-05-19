@@ -92,14 +92,15 @@ const FormVideo: FC = () => {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
+    if (!provider || !contract) {
+      return;
+    }
+    
     setLoading(true);
-
     console.log(formData);
 
-    try {
-      if (!provider || !contract || !formData.cid || !formData.title) {
-        return;
-      }
+    try {      
       // Get the signer from the provider
       const signer = provider.getSigner();
       // Connect the contract to the signer
@@ -159,7 +160,7 @@ const FormVideo: FC = () => {
         />
       </div>
       <div className="mb-4">
-        <label htmlFor="upload" className="block mb-1">
+        <label htmlFor="upload" className="block mb-2">
           Upload Video <span className="text-red-500">*</span>
         </label>
         <div className="relative">
@@ -182,19 +183,18 @@ const FormVideo: FC = () => {
           </span>
         </div>
       </div>
-      {loading && <p>Loading...</p>}
-      {errors && <p>Error: {errors.toString()}</p>}
       <Button
         type="submit"
         disabled={formData.selectedFile === "No file selected" || loading}
         className={
           formData.selectedFile === "No file selected"
-            ? "cursor-not-allowed opacity-55"
-            : ""
+          ? "cursor-not-allowed opacity-55"
+          : ""
         }
-      >
-        Submit
+        >
+        {loading ? "Loading..." : "Submit"}
       </Button>
+      {errors && <p>Error: {errors.toString()}</p>}
     </form>
   );
 };
