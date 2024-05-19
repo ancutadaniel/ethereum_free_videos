@@ -29,36 +29,48 @@ const useBlockchain = () => {
     useState<ethers.providers.Web3Provider | null>(null);
   const [contract, setContract] = useState<ethers.Contract | null>(null);
 
+  const loadBlockchainData = async () => {
+    if (!window.ethereum) {
+      console.error("No Ethereum provider found");
+      return;
+    }
+
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const network = await provider.getNetwork();
+    const networkIdAsString = String(network.chainId);
+
+    if (!(networkIdAsString in typedConfig)) {
+      alert(MESSAGES.networkNotSupported);
+      return;
+    }
+
+    const freeVideos = new ethers.Contract(
+      typedConfig[networkIdAsString].address,
+      FreeVideos.abi,
+      provider
+    );
+
+    setProvider(provider);
+    setContract(freeVideos);
+  };
+
+  const getAddress = async () => {
+    if (!provider) {
+      console.error("No Ethereum provider found");
+      return;
+    }
+    await provider.send("eth_requestAccounts", []);
+    const signer = provider.getSigner();
+    const address = await signer.getAddress();
+
+    return { address, signer };
+  };
+
   useEffect(() => {
-    const loadBlockchainData = async () => {
-      if (!window.ethereum) {
-        console.error("No Ethereum provider found");
-        return;
-      }
-
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      const network = await provider.getNetwork();
-      const networkIdAsString = String(network.chainId);
-
-      if (!(networkIdAsString in typedConfig)) {
-        alert(MESSAGES.networkNotSupported);
-        return;
-      }
-
-      const freeVideos = new ethers.Contract(
-        typedConfig[networkIdAsString].address,
-        FreeVideos.abi,
-        provider
-      );
-
-      setProvider(provider);
-      setContract(freeVideos);
-    };
-
     loadBlockchainData();
   }, []);
 
-  return { provider, contract };
+  return { provider, contract, getAddress };
 };
 
 export default useBlockchain;
