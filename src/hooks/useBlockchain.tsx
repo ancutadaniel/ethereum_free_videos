@@ -6,7 +6,7 @@ import config from "../contracts/config.json";
 
 declare global {
   interface Window {
-    ethereum: any;
+    ethereum: ethers.providers.ExternalProvider;
   }
 }
 
@@ -31,6 +31,11 @@ const useBlockchain = () => {
 
   useEffect(() => {
     const loadBlockchainData = async () => {
+      if (!window.ethereum) {
+        console.error("No Ethereum provider found");
+        return;
+      }
+
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const network = await provider.getNetwork();
       const networkIdAsString = String(network.chainId);
@@ -40,14 +45,14 @@ const useBlockchain = () => {
         return;
       }
 
-      const youtube = new ethers.Contract(
+      const freeVideos = new ethers.Contract(
         typedConfig[networkIdAsString].address,
         FreeVideos.abi,
         provider
       );
 
       setProvider(provider);
-      setContract(youtube);
+      setContract(freeVideos);
     };
 
     loadBlockchainData();

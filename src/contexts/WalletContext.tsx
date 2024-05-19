@@ -7,7 +7,7 @@ import {
   ReactNode,
 } from "react";
 import { useConnectWallet, useNotifications } from "@web3-onboard/react";
-import type { CustomNotification } from "@web3-onboard/core";
+import type { CustomNotification, Notification } from "@web3-onboard/core";
 import type { TokenSymbol } from "@web3-onboard/common";
 
 interface Account {
@@ -18,7 +18,7 @@ interface Account {
 
 interface WalletContextType {
   account: Account | null;
-  notifications: any; // Define a more specific type if possible
+  notifications: Notification[]; // Define a more specific type if possible
   connectWallet: () => void;
   disconnectWallet: () => void;
   handleNotification: (notification: CustomNotification) => void; // Expect a notification object
