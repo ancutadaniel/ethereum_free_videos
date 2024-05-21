@@ -25,9 +25,10 @@ const MESSAGES = {
 };
 
 const useBlockchain = () => {
-  const [provider, setProvider] =
-    useState<ethers.providers.Web3Provider | null>(null);
+  const [provider, setProvider] = useState<ethers.providers.Web3Provider | null>(null);
   const [contract, setContract] = useState<ethers.Contract | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const loadBlockchainData = async () => {
     if (!window.ethereum) {
@@ -35,42 +36,43 @@ const useBlockchain = () => {
       return;
     }
 
-    const provider = new ethers.providers.Web3Provider(window.ethereum);
-    const network = await provider.getNetwork();
-    const networkIdAsString = String(network.chainId);
-
-    if (!(networkIdAsString in typedConfig)) {
-      alert(MESSAGES.networkNotSupported);
+    if (isLoading) {
       return;
     }
 
-    const freeVideos = new ethers.Contract(
-      typedConfig[networkIdAsString].address,
-      FreeVideos.abi,
-      provider
-    );
+    try {
+      setIsLoading(true);
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      await provider.send("eth_requestAccounts", []);
+      const network = await provider.getNetwork();
+      const networkIdAsString = String(network.chainId);
 
-    setProvider(provider);
-    setContract(freeVideos);
-  };
+      if (!(networkIdAsString in typedConfig)) {
+        alert(MESSAGES.networkNotSupported);
+        return;
+      }
 
-  const getAddress = async () => {
-    if (!provider) {
-      console.error("No Ethereum provider found");
-      return;
+      const freeVideos = new ethers.Contract(
+        typedConfig[networkIdAsString].address,
+        FreeVideos.abi,
+        provider.getSigner()
+      );
+
+      setProvider(provider);
+      setContract(freeVideos);
+      setIsInitialized(true);
+    } catch (error) {
+      console.error("Error loading blockchain data:", error);
+    } finally {
+      setIsLoading(false);
     }
-    await provider.send("eth_requestAccounts", []);
-    const signer = provider.getSigner();
-    const address = await signer.getAddress();
-
-    return { address, signer };
   };
 
   useEffect(() => {
     loadBlockchainData();
   }, []);
 
-  return { provider, contract, getAddress };
+  return { provider, contract, isInitialized };
 };
 
 export default useBlockchain;

@@ -1,11 +1,10 @@
-import { useState, FC, ChangeEvent, FormEvent, useEffect } from "react";
-import Button from "../UI/Button";
-
-import { createHelia } from "helia";
-import { unixfs } from "@helia/unixfs";
-import { MemoryBlockstore } from "blockstore-core";
-import useBlockchain from "../../hooks/useBlockchain";
-import { ethers } from "ethers";
+// components/FormVideo/FormVideo.tsx
+import { useState, FC, ChangeEvent, FormEvent } from 'react';
+import Button from '../UI/Button';
+import useBlockchain from '../../hooks/useBlockchain';
+import { BigNumber, ethers } from 'ethers';
+import useHelia from '../../hooks/useHelia';
+import { IPFS_BASE_URL } from '../../constants';
 
 type FormError = string | Error | null;
 
@@ -13,20 +12,27 @@ interface FormData {
   title: string;
   selectedFile: string;
   bufferFile: Uint8Array | null;
-  cid: string;
 }
 
-const FormVideo: FC = () => {
+interface EthereumError extends Error {
+  data?: {
+    [key: string]: unknown;
+  };
+}
+
+const FormVideo: FC<{ onVideoAdded: (video: { id: BigNumber; title: string; hash: string; author: string }) => void }> = ({ onVideoAdded }) => {
   const [formData, setFormData] = useState<FormData>({
-    title: "Bunny",
-    selectedFile: "No file selected",
+    title: 'Bunny',
+    selectedFile: 'No file selected',
     bufferFile: null,
-    cid: "",
   });
 
   const { provider, contract } = useBlockchain();
+  const { cid, error, handleFileUpload } = useHelia();
+
   const [errors, setErrors] = useState<FormError>(null);
   const [loading, setLoading] = useState<boolean>(false);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
 
   const handleTitleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setFormData((prevFormData) => ({
@@ -37,113 +43,84 @@ const FormVideo: FC = () => {
 
   const handleUpload = (e: ChangeEvent<HTMLInputElement>) => {
     setLoading(true);
-    // Check if there are no files selected and reset the form data
     if (!e.target.files || e.target.files.length === 0) {
       setFormData((prevFormData) => ({
         ...prevFormData,
         bufferFile: null,
-        selectedFile: "No file selected",
+        selectedFile: 'No file selected',
       }));
       setLoading(false);
       return;
     }
 
-    try {
-      const fileUpload = e.target.files[0];
-      const reader = new FileReader();
-      reader.readAsArrayBuffer(fileUpload);
+    const fileUpload = e.target.files[0];
+    const reader = new FileReader();
 
-      reader.onload = async () => {
-        // Persistent Peer ID
-        const blockstore = new MemoryBlockstore();
-        // Create a new Helia node and start it up persistently
-        const node = await createHelia({ blockstore });
-        // create a filesystem on top of Helia, in this case it's UnixFS
-        const fs = unixfs(node);
-        // add the bytes to your node and receive a unique content identifier
-        const cid = await fs.addBytes(
-          new Uint8Array(reader.result as ArrayBuffer)
-        );
+    reader.readAsArrayBuffer(fileUpload);
 
-        console.log("Added file:", cid.toString());
-
-        setFormData((prevFormData) => ({
-          ...prevFormData,
-          selectedFile: fileUpload.name,
-          bufferFile: new Uint8Array(reader.result as ArrayBuffer),
-          cid: cid.toString(),
-        }));
-
-        // the node is stopped
-        await node.stop();
-        setLoading(false);
-      };
-
-      reader.onerror = () => {
-        setErrors(reader.error);
-        setLoading(false);
-      };
-    } catch (error) {
-      setErrors(error as FormError);
+    reader.onload = () => {
+      setFormData((prevFormData) => ({
+        ...prevFormData,
+        selectedFile: fileUpload.name,
+        bufferFile: new Uint8Array(reader.result as ArrayBuffer),
+      }));
       setLoading(false);
-    }
-    setLoading(false);
+    };
+
+    reader.onerror = () => {
+      setErrors(reader.error);
+      setLoading(false);
+    };
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
-    if (!provider || !contract) {
+    setLoading(true);
+
+    if (!provider || !contract || !formData.bufferFile) {
+      setLoading(false);
       return;
     }
-    
-    setLoading(true);
-    console.log(formData);
 
-    try {      
-      // Get the signer from the provider
-      const signer = provider.getSigner();
-      // Connect the contract to the signer
-      const contractWithSigner = contract.connect(signer);
-      // Get the fee data from the provider
-      const feeData = await provider.getFeeData();
-      // Upload the CID and the title to the blockchain
-      const tx = await contractWithSigner.uploadVideo(
-        formData.cid,
-        formData.title,
-        {
-          maxFeePerGas: feeData.maxFeePerGas,
-          maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
+    try {
+      await handleFileUpload(formData.bufferFile);
+      if (cid) {
+        const signer = provider.getSigner();
+        const feeData = await provider.getFeeData();
+
+        const nonce = await signer.getTransactionCount("latest");
+
+        const maxFeePerGas = feeData.maxFeePerGas ? BigNumber.from(feeData.maxFeePerGas) : ethers.utils.parseUnits("10", "gwei");
+        const maxPriorityFeePerGas = feeData.maxPriorityFeePerGas ? BigNumber.from(feeData.maxPriorityFeePerGas) : ethers.utils.parseUnits("1", "gwei");
+
+        const { title } = formData;
+
+        const tx = await contract.uploadVideo(cid, title, {
+          nonce,
+          maxFeePerGas,
+          maxPriorityFeePerGas,
+          gasLimit: BigNumber.from("1000000"),
           value: ethers.utils.parseEther("0"),
-        }
-      );
-      await tx.wait();
-      console.log("Transaction mined:", tx.hash);
+        });
 
-      const contractOwner = await contractWithSigner.owner();
-      const videoCount = await contractWithSigner.videoCount();
+        const receipt = await tx.wait();
 
-      const videoArr = [];
-      for (let i = videoCount; i >= 1; i--) {
-        const getVideo = await contractWithSigner.videos(i);
-        const { id, title, hash, author } = getVideo;
-        videoArr.push({ id, title, hash, author });
+        const newVideo = { id: BigNumber.from(receipt.logs[0].topics[1]), title, hash: cid, author: await signer.getAddress() };
+        onVideoAdded(newVideo);
+
+        setVideoUrl(`${IPFS_BASE_URL}${cid}`);
       }
 
-      console.log({
-        videoArr,
-        contractOwner,
-        videoCount: videoCount.toString(),
-      });
     } catch (error) {
-      console.log("Error: ", error);
-      setErrors(error as FormError);
+      const ethError = error as EthereumError;
+      setErrors(`Error adding video: ${ethError.message}`);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} className="mb-8">
       <div className="mb-4">
         <label htmlFor="title" className="block mb-1">
           Video Title <span className="text-red-500">*</span>
@@ -185,16 +162,26 @@ const FormVideo: FC = () => {
       </div>
       <Button
         type="submit"
-        disabled={formData.selectedFile === "No file selected" || loading}
+        disabled={formData.selectedFile === 'No file selected' || loading}
         className={
-          formData.selectedFile === "No file selected"
-          ? "cursor-not-allowed opacity-55"
-          : ""
+          formData.selectedFile === 'No file selected'
+            ? 'cursor-not-allowed opacity-55'
+            : ''
         }
-        >
-        {loading ? "Loading..." : "Submit"}
+      >
+        {loading ? 'Loading...' : 'Submit'}
       </Button>
       {errors && <p>Error: {errors.toString()}</p>}
+      {error && <p>Error: {error}</p>}
+      {videoUrl && (
+        <div className="mt-4">
+          <h2 className="text-lg font-bold">Latest Video</h2>
+          <video controls className="w-full mt-2">
+            <source src={videoUrl} type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
+        </div>
+      )}
     </form>
   );
 };
