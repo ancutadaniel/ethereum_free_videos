@@ -1,10 +1,9 @@
-// components/FormVideo/FormVideo.tsx
-import { useState, FC, ChangeEvent, FormEvent } from 'react';
-import Button from '../UI/Button';
-import useBlockchain from '../../hooks/useBlockchain';
-import { BigNumber, ethers } from 'ethers';
-import useHelia from '../../hooks/useHelia';
-import { IPFS_BASE_URL } from '../../constants';
+import { useState, FC, ChangeEvent, FormEvent, useEffect } from "react";
+import Button from "../UI/Button";
+import useBlockchain from "../../hooks/useBlockchain";
+import { BigNumber, ethers } from "ethers";
+import useHelia from "../../hooks/useHelia";
+import { IPFS_BASE_URL } from "../../constants";
 
 type FormError = string | Error | null;
 
@@ -14,26 +13,48 @@ interface FormData {
   bufferFile: Uint8Array | null;
 }
 
-interface EthereumError extends Error {
-  data?: {
-    [key: string]: unknown;
-  };
-}
-
-const FormVideo: FC<{ onVideoAdded: (video: { id: BigNumber; title: string; hash: string; author: string }) => void }> = ({ onVideoAdded }) => {
-  const [formData, setFormData] = useState<FormData>({
-    title: 'Bunny',
-    selectedFile: 'No file selected',
-    bufferFile: null,
-  });
-
+const FormVideo: FC<{
+  onVideoAdded: (video: {
+    id: BigNumber;
+    title: string;
+    hash: string;
+    author: string;
+  }) => void;
+}> = ({ onVideoAdded }) => {
   const { provider, contract } = useBlockchain();
-  const { cid, error, handleFileUpload } = useHelia();
 
   const [errors, setErrors] = useState<FormError>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
 
+  const [formData, setFormData] = useState<FormData>({
+    title: "",
+    selectedFile: "No file selected",
+    bufferFile: null,
+  });
+
+  useEffect(() => {
+    if (contract) {
+      contract.on("VideoAdded", handleVideoAdded);
+      return () => {
+        contract.off("VideoAdded", handleVideoAdded);
+      };
+    }
+  }, [contract]);
+
+  const handleVideoAdded = (id: BigNumber, hash: string, title: string, author: string) => {
+    console.log("Video added:", id.toString(), hash, title, author);
+    const newVideo = {
+      id,
+      title,
+      hash,
+      author,
+    };
+    onVideoAdded(newVideo);
+    setVideoUrl(`${IPFS_BASE_URL}${hash}`);
+    setLoading(false);
+  };
+  
   const handleTitleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setFormData((prevFormData) => ({
       ...prevFormData,
@@ -42,79 +63,90 @@ const FormVideo: FC<{ onVideoAdded: (video: { id: BigNumber; title: string; hash
   };
 
   const handleUpload = (e: ChangeEvent<HTMLInputElement>) => {
-    setLoading(true);
-    if (!e.target.files || e.target.files.length === 0) {
-      setFormData((prevFormData) => ({
-        ...prevFormData,
-        bufferFile: null,
-        selectedFile: 'No file selected',
-      }));
-      setLoading(false);
+    const files = e.target.files;
+    if (!files || files.length === 0) {
+      updateFormData(null, "No file selected");
       return;
     }
 
-    const fileUpload = e.target.files[0];
+    const fileUpload = files[0];
     const reader = new FileReader();
 
-    reader.readAsArrayBuffer(fileUpload);
-
     reader.onload = () => {
-      setFormData((prevFormData) => ({
-        ...prevFormData,
-        selectedFile: fileUpload.name,
-        bufferFile: new Uint8Array(reader.result as ArrayBuffer),
-      }));
-      setLoading(false);
+      const buffer = new Uint8Array(reader.result as ArrayBuffer);
+      updateFormData(buffer, fileUpload.name);
     };
 
     reader.onerror = () => {
       setErrors(reader.error);
-      setLoading(false);
     };
+
+    reader.readAsArrayBuffer(fileUpload);
   };
+
+  const updateFormData = (
+    bufferFile: Uint8Array | null,
+    selectedFile: string
+  ) => {
+    setFormData((prevFormData) => ({
+      ...prevFormData,
+      bufferFile,
+      selectedFile,
+    }));
+  };
+
+  const onCidObtained = async (cid: string) => {
+    if (!provider || !contract) {
+      setErrors("Blockchain provider or contract not available.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const { title } = formData;
+      const signer = provider.getSigner();
+      const feeData = await provider.getFeeData();
+      const nonce = await signer.getTransactionCount("latest");
+
+      const maxFeePerGas =
+        feeData.maxFeePerGas || ethers.utils.parseUnits("10", "gwei");
+      const maxPriorityFeePerGas =
+        feeData.maxPriorityFeePerGas || ethers.utils.parseUnits("1", "gwei");
+
+      await contract.uploadVideo(cid, title, {
+        nonce,
+        maxFeePerGas,
+        maxPriorityFeePerGas,
+        gasLimit: BigNumber.from("1000000"),
+        value: ethers.utils.parseEther("0"),
+      });
+    } catch (error) {
+      handleError(error);
+    }
+  };
+
+  const handleError = (error: unknown) => {
+    console.error("Error adding video:", error);
+    setErrors(error as FormError);
+    setLoading(false);
+  };
+
+  const { handleFileUpload } = useHelia(onCidObtained);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
 
-    if (!provider || !contract || !formData.bufferFile) {
+    if (!formData.bufferFile) {
+      setErrors("No file buffer available.");
       setLoading(false);
       return;
     }
 
     try {
       await handleFileUpload(formData.bufferFile);
-      if (cid) {
-        const signer = provider.getSigner();
-        const feeData = await provider.getFeeData();
-
-        const nonce = await signer.getTransactionCount("latest");
-
-        const maxFeePerGas = feeData.maxFeePerGas ? BigNumber.from(feeData.maxFeePerGas) : ethers.utils.parseUnits("10", "gwei");
-        const maxPriorityFeePerGas = feeData.maxPriorityFeePerGas ? BigNumber.from(feeData.maxPriorityFeePerGas) : ethers.utils.parseUnits("1", "gwei");
-
-        const { title } = formData;
-
-        const tx = await contract.uploadVideo(cid, title, {
-          nonce,
-          maxFeePerGas,
-          maxPriorityFeePerGas,
-          gasLimit: BigNumber.from("1000000"),
-          value: ethers.utils.parseEther("0"),
-        });
-
-        const receipt = await tx.wait();
-
-        const newVideo = { id: BigNumber.from(receipt.logs[0].topics[1]), title, hash: cid, author: await signer.getAddress() };
-        onVideoAdded(newVideo);
-
-        setVideoUrl(`${IPFS_BASE_URL}${cid}`);
-      }
-
-    } catch (error) {
-      const ethError = error as EthereumError;
-      setErrors(`Error adding video: ${ethError.message}`);
-    } finally {
+    } catch (uploadError) {
+      handleError(uploadError);
       setLoading(false);
     }
   };
@@ -162,17 +194,16 @@ const FormVideo: FC<{ onVideoAdded: (video: { id: BigNumber; title: string; hash
       </div>
       <Button
         type="submit"
-        disabled={formData.selectedFile === 'No file selected' || loading}
+        disabled={formData.selectedFile === "No file selected" || loading}
         className={
-          formData.selectedFile === 'No file selected'
-            ? 'cursor-not-allowed opacity-55'
-            : ''
+          formData.selectedFile === "No file selected"
+            ? "cursor-not-allowed opacity-55"
+            : ""
         }
       >
-        {loading ? 'Loading...' : 'Submit'}
+        {loading ? "Loading..." : "Submit"}
       </Button>
-      {errors && <p>Error: {errors.toString()}</p>}
-      {error && <p>Error: {error}</p>}
+      {errors && <p className="text-red-500">{errors.toString()}</p>}
       {videoUrl && (
         <div className="mt-4">
           <h2 className="text-lg font-bold">Latest Video</h2>

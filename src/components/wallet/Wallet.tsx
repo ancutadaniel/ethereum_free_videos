@@ -1,5 +1,6 @@
-import { useEffect } from "react";
-import { useWallet } from "../../contexts/WalletContext";
+// Wallet.tsx
+import { useEffect } from 'react';
+import { useWallet } from '../../contexts/WalletContext';
 
 const Wallet = () => {
   const {
@@ -30,8 +31,8 @@ const Wallet = () => {
           <button
             onClick={() =>
               handleNotification({
-                type: "hint",
-                message: "This is a custom hint notification!",
+                type: 'hint',
+                message: 'This is a custom hint notification!',
                 autoDismiss: 2000,
               })
             }

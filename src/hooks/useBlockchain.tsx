@@ -68,11 +68,25 @@ const useBlockchain = () => {
     }
   };
 
+  const checkBlockNumber = async (requestedBlockNumber: number) => {
+    if (!provider) {
+      throw new Error("Provider not initialized");
+    }
+
+    const latestBlockNumber = await provider.getBlockNumber();
+    if (requestedBlockNumber > latestBlockNumber) {
+      throw new Error(`Invalid block tag ${requestedBlockNumber}. Latest block number is ${latestBlockNumber}`);
+    }
+
+    const block = await provider.getBlock(requestedBlockNumber);
+    return block;
+  };
+
   useEffect(() => {
     loadBlockchainData();
   }, []);
 
-  return { provider, contract, isInitialized };
+  return { provider, contract, isInitialized, checkBlockNumber };
 };
 
 export default useBlockchain;
