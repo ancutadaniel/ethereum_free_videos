@@ -4,7 +4,6 @@ import FormVideo from "../FormVideo/FormVideo";
 import VideoList from "../VideoList/VideoList";
 import { BigNumberish } from "ethers";
 import { IPFS_BASE_URL } from "../../constants";
-import Wallet from "../Wallet/Wallet";
 import { useWallet } from "../../contexts/WalletContext";
 
 interface DashboardProps {
@@ -142,7 +141,6 @@ const Dashboard: FC<DashboardProps> = ({ selectedItem, className }) => {
           </div>
         </div>
       </div>
-      {/* <Wallet /> */}
     </div>
   );
 };

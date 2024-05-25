@@ -5,7 +5,6 @@ import { ethers, BigNumber } from "ethers";
 import useHelia from "../../hooks/useHelia";
 import { IPFS_BASE_URL } from "../../constants";
 import { useWallet } from "../../contexts/WalletContext";
-import transactionPreview from "@web3-onboard/transaction-preview";
 
 type FormError = string | Error | null;
 
@@ -162,11 +161,7 @@ const FormVideo: FC<{
       const transaction = await buildTransaction(cid, title);
 
       console.log(transaction)
-      // Preview transaction
-      // const txPreview = await transactionPreview.previewTransaction([
-      //   transaction,
-      // ]);
-      // const popTransaction = await signer.populateTransaction(txPreview);
+     // here handle the transaction preview TODO
 
       await sendTransaction(transaction);
     } catch (error) {
