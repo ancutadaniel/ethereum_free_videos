@@ -1,9 +1,11 @@
+
 import { useState, FC, ChangeEvent, FormEvent, useEffect } from "react";
 import Button from "../UI/Button";
-import useBlockchain from "../../hooks/useBlockchain";
-import { BigNumber, ethers } from "ethers";
+import { ethers, BigNumber } from "ethers";
 import useHelia from "../../hooks/useHelia";
 import { IPFS_BASE_URL } from "../../constants";
+import { useWallet } from "../../contexts/WalletContext";
+import transactionPreview from "@web3-onboard/transaction-preview";
 
 type FormError = string | Error | null;
 
@@ -21,9 +23,8 @@ const FormVideo: FC<{
     author: string;
   }) => void;
 }> = ({ onVideoAdded }) => {
-  const { provider, contract } = useBlockchain();
+  const { provider, contract, handleNotification, signer } = useWallet();
 
-  const [errors, setErrors] = useState<FormError>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
 
@@ -42,7 +43,12 @@ const FormVideo: FC<{
     }
   }, [contract]);
 
-  const handleVideoAdded = (id: BigNumber, hash: string, title: string, author: string) => {
+  const handleVideoAdded = (
+    id: BigNumber,
+    hash: string,
+    title: string,
+    author: string
+  ) => {
     console.log("Video added:", id.toString(), hash, title, author);
     const newVideo = {
       id,
@@ -54,7 +60,7 @@ const FormVideo: FC<{
     setVideoUrl(`${IPFS_BASE_URL}${hash}`);
     setLoading(false);
   };
-  
+
   const handleTitleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setFormData((prevFormData) => ({
       ...prevFormData,
@@ -78,7 +84,11 @@ const FormVideo: FC<{
     };
 
     reader.onerror = () => {
-      setErrors(reader.error);
+      handleNotification({
+        eventCode: "error",
+        type: "error",
+        message: "Error handle upload file",
+      });
     };
 
     reader.readAsArrayBuffer(fileUpload);
@@ -95,31 +105,70 @@ const FormVideo: FC<{
     }));
   };
 
-  const onCidObtained = async (cid: string) => {
-    if (!provider || !contract) {
-      setErrors("Blockchain provider or contract not available.");
+  const buildTransaction = async (cid: string, title: string) => {
+    if (!provider || !contract || !signer) {
+      handleNotification({
+        eventCode: "error",
+        type: "error",
+        message: "Blockchain provider, contract, or signer not available.",
+      });
       setLoading(false);
-      return;
+      throw new Error("Blockchain provider, contract, or signer not available.");
     }
 
+    const feeData = await provider.getFeeData();
+    const nonce = await signer.getTransactionCount();
+
+    const maxFeePerGas =
+      feeData.maxFeePerGas || ethers.utils.parseUnits("10", "gwei");
+    const maxPriorityFeePerGas =
+      feeData.maxPriorityFeePerGas || ethers.utils.parseUnits("1", "gwei");
+
+    return {
+      to: contract.address,
+      data: contract.interface.encodeFunctionData("uploadVideo", [cid, title]),
+      maxFeePerGas,
+      maxPriorityFeePerGas,
+      nonce,
+      value: ethers.utils.parseEther("0"), // Ensure value is defined
+    };
+  };
+
+  const sendTransaction = async (transaction: ethers.PopulatedTransaction) => {
+    if (!provider || !signer) {
+      handleNotification({
+        eventCode: "error",
+        type: "error",
+        message: "Blockchain provider or signer not available.",
+      });
+      setLoading(false);
+      throw new Error("Blockchain provider or signer not available.");
+    }
+
+    const txResponse = await signer.sendTransaction(transaction);
+    console.log("txResponse", txResponse);
+    await txResponse.wait();
+
+    handleNotification({
+      eventCode: "transactionSent",
+      type: "hint",
+      message: "Transaction sent successfully!",
+    });
+  };
+
+  const onCidObtained = async (cid: string) => {
     try {
       const { title } = formData;
-      const signer = provider.getSigner();
-      const feeData = await provider.getFeeData();
-      const nonce = await signer.getTransactionCount("latest");
+      const transaction = await buildTransaction(cid, title);
 
-      const maxFeePerGas =
-        feeData.maxFeePerGas || ethers.utils.parseUnits("10", "gwei");
-      const maxPriorityFeePerGas =
-        feeData.maxPriorityFeePerGas || ethers.utils.parseUnits("1", "gwei");
+      console.log(transaction)
+      // Preview transaction
+      // const txPreview = await transactionPreview.previewTransaction([
+      //   transaction,
+      // ]);
+      // const popTransaction = await signer.populateTransaction(txPreview);
 
-      await contract.uploadVideo(cid, title, {
-        nonce,
-        maxFeePerGas,
-        maxPriorityFeePerGas,
-        gasLimit: BigNumber.from("1000000"),
-        value: ethers.utils.parseEther("0"),
-      });
+      await sendTransaction(transaction);
     } catch (error) {
       handleError(error);
     }
@@ -127,7 +176,13 @@ const FormVideo: FC<{
 
   const handleError = (error: unknown) => {
     console.error("Error adding video:", error);
-    setErrors(error as FormError);
+    handleNotification({
+      eventCode: "error",
+      type: "error",
+      message: `Error adding video: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`,
+    });
     setLoading(false);
   };
 
@@ -138,8 +193,12 @@ const FormVideo: FC<{
     setLoading(true);
 
     if (!formData.bufferFile) {
-      setErrors("No file buffer available.");
       setLoading(false);
+      handleNotification({
+        eventCode: "error",
+        type: "error",
+        message: "No file buffer available.",
+      });
       return;
     }
 
@@ -203,16 +262,6 @@ const FormVideo: FC<{
       >
         {loading ? "Loading..." : "Submit"}
       </Button>
-      {errors && <p className="text-red-500">{errors.toString()}</p>}
-      {videoUrl && (
-        <div className="mt-4">
-          <h2 className="text-lg font-bold">Latest Video</h2>
-          <video controls className="w-full mt-2">
-            <source src={videoUrl} type="video/mp4" />
-            Your browser does not support the video tag.
-          </video>
-        </div>
-      )}
     </form>
   );
 };

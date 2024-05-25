@@ -1,11 +1,11 @@
 // components/VideoList/VideoList.tsx
 import { FC } from "react";
-import { BigNumber } from "ethers";
+import { BigNumberish } from "ethers";
 import { IPFS_BASE_URL } from "../../constants";
 import * as blockies from "ethereum-blockies";
 
 interface Video {
-  id: BigNumber;
+  id: BigNumberish;
   title: string;
   hash: string;
   author: string;

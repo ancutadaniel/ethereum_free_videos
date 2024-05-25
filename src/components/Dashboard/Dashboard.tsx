@@ -2,9 +2,10 @@
 import { FC, useEffect, useState } from "react";
 import FormVideo from "../FormVideo/FormVideo";
 import VideoList from "../VideoList/VideoList";
-import useBlockchain from "../../hooks/useBlockchain";
-import { BigNumber } from "ethers";
+import { BigNumberish } from "ethers";
 import { IPFS_BASE_URL } from "../../constants";
+import Wallet from "../Wallet/Wallet";
+import { useWallet } from "../../contexts/WalletContext";
 
 interface DashboardProps {
   selectedItem: string;
@@ -12,7 +13,7 @@ interface DashboardProps {
 }
 
 interface Video {
-  id: BigNumber;
+  id: BigNumberish;
   title: string;
   hash: string;
   author: string;
@@ -24,14 +25,14 @@ interface EthereumError extends Error {
 }
 
 const Dashboard: FC<DashboardProps> = ({ selectedItem, className }) => {
-  const { provider, contract, isInitialized, checkBlockNumber } = useBlockchain();
+  const { provider, contract } = useWallet();
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
 
   const getVideos = async () => {
-    if (!isInitialized || !provider || !contract) {
+    if (!provider || !contract) {
       setError("Blockchain not initialized");
       return;
     }
@@ -41,15 +42,6 @@ const Dashboard: FC<DashboardProps> = ({ selectedItem, className }) => {
 
     try {
       const latestBlockNumber = await provider.getBlockNumber();
-
-      // Validate the latest block number
-      try {
-        await checkBlockNumber(latestBlockNumber);
-      } catch (blockError) {
-        setError((blockError as Error).message);
-        setLoading(false);
-        return;
-      }
 
       const videoCount = await contract.videoCount({ blockTag: latestBlockNumber });
       if (videoCount.isZero()) {
@@ -82,7 +74,7 @@ const Dashboard: FC<DashboardProps> = ({ selectedItem, className }) => {
 
     if (contract) {
       const handleVideoAdded = (
-        id: BigNumber,
+        id: BigNumberish,
         hash: string,
         title: string,
         author: string
@@ -98,7 +90,7 @@ const Dashboard: FC<DashboardProps> = ({ selectedItem, className }) => {
         contract.off("VideoAdded", handleVideoAdded);
       };
     }
-  }, [isInitialized, contract]);
+  }, [contract]);
 
   return (
     <div className={`flex flex-col bg-green-100 overflow-y-auto ${className}`}>
@@ -150,6 +142,7 @@ const Dashboard: FC<DashboardProps> = ({ selectedItem, className }) => {
           </div>
         </div>
       </div>
+      {/* <Wallet /> */}
     </div>
   );
 };
