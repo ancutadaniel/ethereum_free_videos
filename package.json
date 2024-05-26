@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@helia/strings": "^3.0.4",
+    "@helia/unixfs": "^3.0.6",
+    "@helia/verified-fetch": "^1.4.2",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
@@ -11,13 +14,19 @@
     "@types/react": "^18.0.0",
     "@types/react-dom": "^18.0.0",
     "@web3-onboard/core": "^2.21.6",
+    "@web3-onboard/gas": "^2.1.8",
     "@web3-onboard/injected-wallets": "^2.10.16",
     "@web3-onboard/react": "^2.8.17",
     "@web3-onboard/transaction-preview": "^2.0.9",
+    "@web3-onboard/unstoppable-resolution": "^2.0.2",
     "@web3-onboard/walletconnect": "^2.5.5",
     "axios": "^1.6.8",
+    "blockstore-core": "^4.4.1",
     "buffer": "^6.0.3",
     "dotenv": "^16.4.5",
+    "ethereum-blockies": "^0.1.1",
+    "helia": "^4.2.1",
+    "ipfs-http-client": "^60.0.1",
     "nft.storage": "^7.1.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -33,7 +42,8 @@
     "eject": "react-scripts eject",
     "hardhat": "npx hardhat node",
     "sepolia": "npx hardhat run scripts/deploy.js --network sepolia",
-    "localhost": "npx hardhat run scripts/deploy.js --network localhost"
+    "localhost": "npx hardhat run scripts/deploy.js --network localhost",
+    "console": "npx hardhat console --network localhost"
   },
   "eslintConfig": {
     "extends": [
@@ -70,6 +80,7 @@
     "ethers": "^5.7.2",
     "hardhat": "^2.13.0",
     "hardhat-gas-reporter": "^1.0.9",
+    "mocha": "^10.4.0",
     "solidity-coverage": "^0.8.2",
     "tailwindcss": "^3.4.3",
     "ts-node": "^10.9.2",

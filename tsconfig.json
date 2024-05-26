@@ -25,6 +25,7 @@
     "./src/**/*",
     "./__helpers__/*",
     "server/**/*",
-    "./tailwind.config.js",
-  ]
+    "./tailwind.config.js", "test",
+  ],
+  "exclude": ["node_modules"]
 }
