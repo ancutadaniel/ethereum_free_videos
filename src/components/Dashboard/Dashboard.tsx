@@ -1,5 +1,4 @@
-// components/Dashboard/Dashboard.tsx
-import { FC, useEffect, useState } from "react";
+import { FC, useEffect, useState, useRef, useCallback } from "react";
 import FormVideo from "../FormVideo/FormVideo";
 import VideoList from "../VideoList/VideoList";
 import { BigNumberish } from "ethers";
@@ -24,15 +23,16 @@ interface EthereumError extends Error {
 }
 
 const Dashboard: FC<DashboardProps> = ({ selectedItem, className }) => {
-  const { provider, contract } = useWallet();
+  const { provider, contract, handleNotification } = useWallet();
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
 
-  const getVideos = async () => {
+  const mainDashRef = useRef<HTMLDivElement>(null);
+
+  const getVideos = useCallback(async () => {
     if (!provider || !contract) {
-      setError("Blockchain not initialized");
       return;
     }
 
@@ -41,8 +41,10 @@ const Dashboard: FC<DashboardProps> = ({ selectedItem, className }) => {
 
     try {
       const latestBlockNumber = await provider.getBlockNumber();
+      const videoCount = await contract.videoCount({
+        blockTag: latestBlockNumber,
+      });
 
-      const videoCount = await contract.videoCount({ blockTag: latestBlockNumber });
       if (videoCount.isZero()) {
         setVideos([]);
         setLoading(false);
@@ -51,7 +53,9 @@ const Dashboard: FC<DashboardProps> = ({ selectedItem, className }) => {
 
       const videoArr: Video[] = [];
       for (let i = videoCount; i.gte(1); i = i.sub(1)) {
-        const getVideo = await contract.videos(i, { blockTag: latestBlockNumber });
+        const getVideo = await contract.videos(i, {
+          blockTag: latestBlockNumber,
+        });
         const { id, title, hash, author } = getVideo;
         videoArr.push({ id, title, hash, author });
       }
@@ -62,11 +66,16 @@ const Dashboard: FC<DashboardProps> = ({ selectedItem, className }) => {
       }
     } catch (error) {
       const ethError = error as EthereumError;
+      handleNotification({
+        eventCode: "error",
+        type: "error",
+        message: `Error fetching videos: ${ethError.message}`,
+      });
       setError(`Error fetching videos: ${ethError.message}`);
     } finally {
       setLoading(false);
     }
-  };
+  }, [provider, contract, handleNotification]);
 
   useEffect(() => {
     getVideos();
@@ -89,30 +98,30 @@ const Dashboard: FC<DashboardProps> = ({ selectedItem, className }) => {
         contract.off("VideoAdded", handleVideoAdded);
       };
     }
-  }, [contract]);
+  }, [contract, getVideos]);
+
+  useEffect(() => {
+    if (mainDashRef.current) {
+      mainDashRef.current.scrollTop = 0;
+    }
+  }, [selectedVideo]);
 
   return (
-    <div className={`flex flex-col bg-green-100 overflow-y-auto ${className}`}>
+    <div
+      className={`flex flex-col bg-green-100 ${className}`}
+      style={{ overflowY: "auto" }}
+      ref={mainDashRef}
+    >
       <div className="p-4 flex-none">
         <h1 className="text-lg font-bold">Dashboard</h1>
         <p>Selected Item: {selectedItem}</p>
       </div>
-      <div className="flex flex-col md:flex-row flex-grow h-full mx-4 mb-4 space-y-4 md:space-y-0 md:space-x-4">
-        <div className="bg-blue-200 md:w-5/12 w-full order-1 md:order-2 h-full ml-4">
-          <div className="p-4 rounded shadow-md h-full overflow-y-auto">
-            <div className="overflow-y-auto h-4/5">
-              <FormVideo
-                onVideoAdded={(video) => {
-                  setVideos((prevVideos) => [video, ...prevVideos]);
-                  setSelectedVideo(video);
-                }}
-              />
-              <VideoList videos={videos} onVideoSelect={setSelectedVideo} />
-            </div>
-          </div>
-        </div>
-        <div className="md:w-7/12 w-full order-2 md:order-1 h-full">
-          <div className="bg-white p-4 rounded shadow-md h-full flex overflow-y-auto">
+      <div
+        id="main_dash"
+        className="flex flex-col md:flex-row flex-grow mx-4 mb-4 space-y-4 md:space-y-0 md:space-x-4"
+      >
+        <div className="md:w-8/12 w-full">
+          <div className="bg-white p-4 rounded shadow-md flex flex-col h-full">
             {loading ? (
               <p>Loading videos...</p>
             ) : error ? (
@@ -124,10 +133,7 @@ const Dashboard: FC<DashboardProps> = ({ selectedItem, className }) => {
                     {selectedVideo.title}
                   </h2>
                   <div className="relative w-full overflow-hidden rounded-md shadow-lg">
-                    <video
-                      controls
-                      className="w-full h-auto"
-                    >
+                    <video controls className="w-full">
                       <source
                         src={`${IPFS_BASE_URL}${selectedVideo.hash}`}
                         type="video/mp4"
@@ -138,6 +144,17 @@ const Dashboard: FC<DashboardProps> = ({ selectedItem, className }) => {
                 </div>
               )
             )}
+          </div>
+        </div>
+        <div id="form_video" className="bg-blue-200 md:w-4/12 w-full h-full">
+          <div className="p-4 rounded shadow-md h-full flex flex-col">
+            <FormVideo
+              onVideoAdded={(video) => {
+                setVideos((prevVideos) => [video, ...prevVideos]);
+                setSelectedVideo(video);
+              }}
+            />
+            <VideoList videos={videos} onVideoSelect={setSelectedVideo} />
           </div>
         </div>
       </div>

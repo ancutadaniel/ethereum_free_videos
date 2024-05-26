@@ -21,6 +21,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onSelect }) => {
       className={`transition-width duration-300 ease-in-out ${
         isOpen ? "w-64" : "w-22"
       } hidden md:flex flex-col h-full bg-background-default dark:bg-background-dark p-4 shadow-md justify-between`}
+      style={{ minWidth: isOpen ? "200px" : "120px" }}
     >
       <div>
         <Button

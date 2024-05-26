@@ -1,5 +1,4 @@
-// components/VideoList/VideoList.tsx
-import { FC } from "react";
+import { FC, memo } from "react";
 import { BigNumberish } from "ethers";
 import { IPFS_BASE_URL } from "../../constants";
 import * as blockies from "ethereum-blockies";
@@ -17,7 +16,7 @@ interface VideoListProps {
 }
 
 const VideoList: FC<VideoListProps> = ({ videos, onVideoSelect }) => {
-  return (
+   return (
     <div className="space-y-4">
       {videos.map((video, index) => (
         <div
@@ -33,10 +32,12 @@ const VideoList: FC<VideoListProps> = ({ videos, onVideoSelect }) => {
             />
             <div>
               <p className="font-bold">Title: {video.title}</p>
-              <p className="text-gray-600">Author: {video.author.slice(0, 6)}...{video.author.slice(-4)}</p>
+              <p className="text-gray-600">
+                Author: {video.author.slice(0, 6)}...{video.author.slice(-4)}
+              </p>
             </div>
           </div>
-          <video controls className="w-full mt-2 rounded-md shadow-md">
+          <video className="w-full mt-2 rounded-md shadow-md">
             <source src={`${IPFS_BASE_URL}${video.hash}`} type="video/mp4" />
             Your browser does not support the video tag.
           </video>
@@ -46,4 +47,4 @@ const VideoList: FC<VideoListProps> = ({ videos, onVideoSelect }) => {
   );
 };
 
-export default VideoList;
+export default memo(VideoList);

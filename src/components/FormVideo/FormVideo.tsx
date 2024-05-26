@@ -5,6 +5,7 @@ import {
   FormEvent,
   useEffect,
   useCallback,
+  useRef,
 } from "react";
 import Button from "../UI/Button";
 import { ethers, BigNumber } from "ethers";
@@ -33,24 +34,56 @@ const FormVideo: FC<{
     bufferFile: null,
   });
 
-  useEffect(() => {
-    if (!contract) return;
+  const latestBlockNumberRef = useRef<number | null>(null);
 
-    const handleVideoAdded = (
+  useEffect(() => {
+    const fetchLatestBlockNumber = async () => {
+      if (provider) {
+        const blockNumber = await provider.getBlockNumber();
+        latestBlockNumberRef.current = blockNumber;
+      }
+    };
+
+    fetchLatestBlockNumber();
+  }, [provider]);
+
+  const handleVideoAdded = useCallback(
+    (
       id: BigNumber,
       hash: string,
       title: string,
-      author: string
+      author: string,
+      event: ethers.Event
     ) => {
+      if (
+        !latestBlockNumberRef.current ||
+        event.blockNumber <= latestBlockNumberRef.current
+      ) {
+        return; // Ignore events from before this component was mounted
+      }
+
       onVideoAdded({ id, title, hash, author });
       setLoading(false);
-    };
+
+      handleNotification({
+        eventCode: "transactionSuccess",
+        type: "success",
+        message: "Transaction was successfully minted...",
+        autoDismiss: 5000,
+      });
+    },
+    [handleNotification, onVideoAdded]
+  );
+
+  useEffect(() => {
+    if (!contract) return;
 
     contract.on("VideoAdded", handleVideoAdded);
+
     return () => {
       contract.off("VideoAdded", handleVideoAdded);
     };
-  }, [contract, onVideoAdded]);
+  }, [contract, handleVideoAdded]);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value, files } = e.target;
@@ -71,6 +104,7 @@ const FormVideo: FC<{
           eventCode: "error",
           type: "error",
           message: "Error uploading file",
+          autoDismiss: 5000,
         });
       reader.readAsArrayBuffer(file);
     }
@@ -102,13 +136,31 @@ const FormVideo: FC<{
         value: ethers.utils.parseEther("0"),
       };
 
-      const txResponse = await signer.sendTransaction(transaction);
-      await txResponse.wait();
-      handleNotification({
-        eventCode: "transactionSent",
-        type: "hint",
-        message: "Transaction sent successfully!",
-      });
+      try {
+        const txResponse = await signer.sendTransaction(transaction);
+        handleNotification({
+          eventCode: "transactionPending",
+          type: "pending",
+          message: "Transaction is pending confirmation...",
+          autoDismiss: 5000,
+        });
+        await txResponse.wait();
+        handleNotification({
+          eventCode: "transactionSent",
+          type: "success",
+          message: "Transaction sent successfully!",
+          autoDismiss: 5000,
+        });
+      } catch (error) {
+          handleNotification({
+            eventCode: "transactionError",
+            type: "error",
+            message: `MetaMask Tx Signature: User denied transaction signature.`,
+            autoDismiss: 5000,
+          });
+          setLoading(false);
+        }
+      
     },
     [provider, contract, signer, formData.title, handleNotification]
   );
@@ -124,6 +176,7 @@ const FormVideo: FC<{
         eventCode: "error",
         type: "error",
         message: "No file buffer available.",
+        autoDismiss: 5000,
       });
       return;
     }
@@ -135,9 +188,8 @@ const FormVideo: FC<{
       handleNotification({
         eventCode: "error",
         type: "error",
-        message: `Error adding video: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`,
+        message: `Error adding video`,
+        autoDismiss: 5000,
       });
       setLoading(false);
     }
