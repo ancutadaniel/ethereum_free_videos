@@ -1,12 +1,15 @@
-
-import { useState, FC, ChangeEvent, FormEvent, useEffect } from "react";
+import {
+  useState,
+  FC,
+  ChangeEvent,
+  FormEvent,
+  useEffect,
+  useCallback,
+} from "react";
 import Button from "../UI/Button";
 import { ethers, BigNumber } from "ethers";
 import useHelia from "../../hooks/useHelia";
-import { IPFS_BASE_URL } from "../../constants";
 import { useWallet } from "../../contexts/WalletContext";
-
-type FormError = string | Error | null;
 
 interface FormData {
   title: string;
@@ -23,10 +26,7 @@ const FormVideo: FC<{
   }) => void;
 }> = ({ onVideoAdded }) => {
   const { provider, contract, handleNotification, signer } = useWallet();
-
   const [loading, setLoading] = useState<boolean>(false);
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
-
   const [formData, setFormData] = useState<FormData>({
     title: "",
     selectedFile: "No file selected",
@@ -34,161 +34,92 @@ const FormVideo: FC<{
   });
 
   useEffect(() => {
-    if (contract) {
-      contract.on("VideoAdded", handleVideoAdded);
-      return () => {
-        contract.off("VideoAdded", handleVideoAdded);
+    if (!contract) return;
+
+    const handleVideoAdded = (
+      id: BigNumber,
+      hash: string,
+      title: string,
+      author: string
+    ) => {
+      onVideoAdded({ id, title, hash, author });
+      setLoading(false);
+    };
+
+    contract.on("VideoAdded", handleVideoAdded);
+    return () => {
+      contract.off("VideoAdded", handleVideoAdded);
+    };
+  }, [contract, onVideoAdded]);
+
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const { name, value, files } = e.target;
+    if (name === "title") {
+      setFormData((prev) => ({ ...prev, title: value }));
+    } else if (files && files.length > 0) {
+      const file = files[0];
+      const reader = new FileReader();
+      reader.onload = () => {
+        setFormData((prev) => ({
+          ...prev,
+          bufferFile: new Uint8Array(reader.result as ArrayBuffer),
+          selectedFile: file.name,
+        }));
       };
+      reader.onerror = () =>
+        handleNotification({
+          eventCode: "error",
+          type: "error",
+          message: "Error uploading file",
+        });
+      reader.readAsArrayBuffer(file);
     }
-  }, [contract]);
-
-  const handleVideoAdded = (
-    id: BigNumber,
-    hash: string,
-    title: string,
-    author: string
-  ) => {
-    console.log("Video added:", id.toString(), hash, title, author);
-    const newVideo = {
-      id,
-      title,
-      hash,
-      author,
-    };
-    onVideoAdded(newVideo);
-    setVideoUrl(`${IPFS_BASE_URL}${hash}`);
-    setLoading(false);
   };
 
-  const handleTitleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setFormData((prevFormData) => ({
-      ...prevFormData,
-      title: e.target.value,
-    }));
-  };
+  const handleTransaction = useCallback(
+    async (cid: string) => {
+      if (!provider || !contract || !signer)
+        throw new Error(
+          "Blockchain provider, contract, or signer not available."
+        );
 
-  const handleUpload = (e: ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) {
-      updateFormData(null, "No file selected");
-      return;
-    }
+      const feeData = await provider.getFeeData();
+      const nonce = await signer.getTransactionCount();
+      const maxFeePerGas =
+        feeData.maxFeePerGas || ethers.utils.parseUnits("10", "gwei");
+      const maxPriorityFeePerGas =
+        feeData.maxPriorityFeePerGas || ethers.utils.parseUnits("1", "gwei");
 
-    const fileUpload = files[0];
-    const reader = new FileReader();
+      const transaction = {
+        to: contract.address,
+        data: contract.interface.encodeFunctionData("uploadVideo", [
+          cid,
+          formData.title,
+        ]),
+        maxFeePerGas,
+        maxPriorityFeePerGas,
+        nonce,
+        value: ethers.utils.parseEther("0"),
+      };
 
-    reader.onload = () => {
-      const buffer = new Uint8Array(reader.result as ArrayBuffer);
-      updateFormData(buffer, fileUpload.name);
-    };
-
-    reader.onerror = () => {
+      const txResponse = await signer.sendTransaction(transaction);
+      await txResponse.wait();
       handleNotification({
-        eventCode: "error",
-        type: "error",
-        message: "Error handle upload file",
+        eventCode: "transactionSent",
+        type: "hint",
+        message: "Transaction sent successfully!",
       });
-    };
+    },
+    [provider, contract, signer, formData.title, handleNotification]
+  );
 
-    reader.readAsArrayBuffer(fileUpload);
-  };
-
-  const updateFormData = (
-    bufferFile: Uint8Array | null,
-    selectedFile: string
-  ) => {
-    setFormData((prevFormData) => ({
-      ...prevFormData,
-      bufferFile,
-      selectedFile,
-    }));
-  };
-
-  const buildTransaction = async (cid: string, title: string) => {
-    if (!provider || !contract || !signer) {
-      handleNotification({
-        eventCode: "error",
-        type: "error",
-        message: "Blockchain provider, contract, or signer not available.",
-      });
-      setLoading(false);
-      throw new Error("Blockchain provider, contract, or signer not available.");
-    }
-
-    const feeData = await provider.getFeeData();
-    const nonce = await signer.getTransactionCount();
-
-    const maxFeePerGas =
-      feeData.maxFeePerGas || ethers.utils.parseUnits("10", "gwei");
-    const maxPriorityFeePerGas =
-      feeData.maxPriorityFeePerGas || ethers.utils.parseUnits("1", "gwei");
-
-    return {
-      to: contract.address,
-      data: contract.interface.encodeFunctionData("uploadVideo", [cid, title]),
-      maxFeePerGas,
-      maxPriorityFeePerGas,
-      nonce,
-      value: ethers.utils.parseEther("0"), // Ensure value is defined
-    };
-  };
-
-  const sendTransaction = async (transaction: ethers.PopulatedTransaction) => {
-    if (!provider || !signer) {
-      handleNotification({
-        eventCode: "error",
-        type: "error",
-        message: "Blockchain provider or signer not available.",
-      });
-      setLoading(false);
-      throw new Error("Blockchain provider or signer not available.");
-    }
-
-    const txResponse = await signer.sendTransaction(transaction);
-    console.log("txResponse", txResponse);
-    await txResponse.wait();
-
-    handleNotification({
-      eventCode: "transactionSent",
-      type: "hint",
-      message: "Transaction sent successfully!",
-    });
-  };
-
-  const onCidObtained = async (cid: string) => {
-    try {
-      const { title } = formData;
-      const transaction = await buildTransaction(cid, title);
-
-      console.log(transaction)
-     // here handle the transaction preview TODO
-
-      await sendTransaction(transaction);
-    } catch (error) {
-      handleError(error);
-    }
-  };
-
-  const handleError = (error: unknown) => {
-    console.error("Error adding video:", error);
-    handleNotification({
-      eventCode: "error",
-      type: "error",
-      message: `Error adding video: ${
-        error instanceof Error ? error.message : "Unknown error"
-      }`,
-    });
-    setLoading(false);
-  };
-
-  const { handleFileUpload } = useHelia(onCidObtained);
+  const { handleFileUpload } = useHelia(async (cid: string) => {
+    await handleTransaction(cid);
+  });
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setLoading(true);
-
     if (!formData.bufferFile) {
-      setLoading(false);
       handleNotification({
         eventCode: "error",
         type: "error",
@@ -197,10 +128,17 @@ const FormVideo: FC<{
       return;
     }
 
+    setLoading(true);
     try {
       await handleFileUpload(formData.bufferFile);
-    } catch (uploadError) {
-      handleError(uploadError);
+    } catch (error) {
+      handleNotification({
+        eventCode: "error",
+        type: "error",
+        message: `Error adding video: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+      });
       setLoading(false);
     }
   };
@@ -213,11 +151,11 @@ const FormVideo: FC<{
         </label>
         <input
           id="title"
-          placeholder="Some title..."
           name="title"
+          placeholder="Some title..."
           type="text"
           value={formData.title}
-          onChange={handleTitleChange}
+          onChange={handleChange}
           required
           className="border border-gray-300 rounded-md px-3 py-2 w-full"
         />
@@ -229,8 +167,9 @@ const FormVideo: FC<{
         <div className="relative">
           <input
             id="upload"
+            name="upload"
             type="file"
-            onChange={handleUpload}
+            onChange={handleChange}
             accept=".mp4, .mkv, .ogg, .wmv"
             className="hidden"
             required
@@ -241,9 +180,7 @@ const FormVideo: FC<{
           >
             Select File
           </label>
-          <span className="ml-2" id="fileName">
-            {formData.selectedFile}
-          </span>
+          <span className="ml-2">{formData.selectedFile}</span>
         </div>
       </div>
       <Button
