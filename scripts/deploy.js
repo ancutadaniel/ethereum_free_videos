@@ -1,31 +1,71 @@
 /* eslint-disable no-undef */
-const hre = require("hardhat");
-const path = require("path");
-const fs = require("fs");
+import hre from "hardhat";
+import path from "path";
+import fs from "fs";
+import axios from "axios";
 
-// Convert numeric values to their ether equivalents
-// const toEther = (amount) => ethers.utils.parseUnits(amount.toString(), "ether");
+const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY || "";
 
 // Main deployment function
 const deploy = async () => {
-  const [deployer] = await ethers.getSigners();
+  const [deployer] = await hre.ethers.getSigners();
 
   // Deploy the NFT contract
   const contractFactory = await hre.ethers.getContractFactory("FreeVideos");
   const contract = await contractFactory.deploy();
   await contract.deployed();
 
+  // Get deployment transaction receipt
+  const receipt = await hre.ethers.provider.getTransactionReceipt(
+    contract.deployTransaction.hash
+  );
+  const gasUsed = receipt.gasUsed.toString();
+
+  let gasPrice;
+  try {
+    // Get the current gas price from Etherscan
+    const gasPriceResponse = await axios.get(
+      `https://api.etherscan.io/api?module=gastracker&action=gasoracle&apikey=${ETHERSCAN_API_KEY}`
+    );
+    gasPrice = gasPriceResponse.data.result.ProposeGasPrice; // in Gwei
+    if (!gasPrice) throw new Error("Gas price not found in response");
+  } catch (error) {
+    console.error("Error fetching gas price:", error);
+    gasPrice = "20"; // Fallback to a default gas price in Gwei if the API call fails
+  }
+
+  // Get the current ETH price from CoinGecko
+  let ethPrice;
+  try {
+    const ethPriceResponse = await axios.get(
+      "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd"
+    );
+    ethPrice = ethPriceResponse.data.ethereum.usd; // in USD
+  } catch (error) {
+    console.error("Error fetching ETH price:", error);
+    ethPrice = 3807.04; // Fallback to a default ETH price in USD if the API call fails
+  }
+
+  const gasPriceInETH = gasPrice * 1e-9; // Convert Gwei to ETH
+  const deploymentCostInETH = gasUsed * gasPriceInETH;
+  const deploymentCostInUSD = deploymentCostInETH * ethPrice;
+
   // Log deployment details
   console.log({
-    "Chain ID": (await ethers.provider.getNetwork()).chainId,
+    "Chain ID": (await hre.ethers.provider.getNetwork()).chainId,
     "Deploying Account": await deployer.getAddress(),
     "Account Balance": (await deployer.getBalance()).toString(),
     "Deployed Contract Address": contract.address,
+    "Gas Used": gasUsed,
+    "Gas Price (Gwei)": gasPrice,
+    "ETH Price (USD)": ethPrice,
+    "Deployment Cost (ETH)": deploymentCostInETH,
+    "Deployment Cost (USD)": deploymentCostInUSD,
   });
 
   // Save configuration and contract ABI
   updateFrontendConfiguration(
-    (await ethers.provider.getNetwork()).chainId,
+    (await hre.ethers.provider.getNetwork()).chainId,
     contract.address
   );
 };
@@ -51,7 +91,7 @@ const updateFrontendConfiguration = (chainId, contractAddress) => {
   fs.writeFileSync(configFilePath, JSON.stringify(config, null, 2));
 
   // Save contract ABI
-  const contractABI = artifacts.readArtifactSync("FreeVideos");
+  const contractABI = hre.artifacts.readArtifactSync("FreeVideos");
   fs.writeFileSync(
     path.join(configDirectory, "FreeVideos.json"),
     JSON.stringify(contractABI, null, 2)

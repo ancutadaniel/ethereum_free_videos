@@ -32,7 +32,7 @@ const MenuItems: React.FC<MenuItemsProps> = ({
         className="mb-4"
       >
         <ul className="space-y-2 text-white md:text-black md:dark:text-white">
-          <li onClick={() => onSelectHandler("Analytics")}>Analytics</li>
+          <li onClick={() => onSelectHandler("Videos")}>Videos</li>
           <li onClick={() => onSelectHandler("Reporting")}>Reporting</li>
           <li onClick={() => onSelectHandler("Projects")}>Projects</li>
         </ul>

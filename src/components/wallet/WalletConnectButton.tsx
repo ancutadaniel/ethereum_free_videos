@@ -1,27 +1,42 @@
-import { FC } from "react";
-import Button from "../UI/Button";
-import { useWallet } from "../../contexts/WalletContext";
+// WalletConnectButton.tsx
+import { FC, useState, useEffect } from 'react';
+import Button from '../UI/Button';
+import { useWallet } from '../../contexts/WalletContext';
+import * as blockies from 'ethereum-blockies';
 
 const WalletConnectButton: FC = () => {
   const { account, connectWallet, disconnectWallet } = useWallet();
+  const [balance, setBalance] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (account && account.balance) {
+      setBalance(account.balance['ETH']);
+    } else {
+      setBalance(null);
+    }
+  }, [account]);
 
   return (
     <>
-      {account && account.balance && (
-        <div className="flex flex-col items-center">
+      {account && balance && (
+        <div className="flex items-center space-x-2">
+          <img
+            src={blockies.create({ seed: account.address }).toDataURL()}
+            alt="Identicon"
+            className="w-10 h-10 rounded-full"
+          />
           <p className="text-blue-700 dark:text-white">
-            Balance: {account.balance["ETH"]} ETH
+            Balance: {Number(balance).toFixed(4)} ETH
           </p>
         </div>
       )}
       <Button
         onClick={() => (account ? disconnectWallet() : connectWallet())}
         className="dark:bg-accent-btn text-white m-2 md:mx-0 md:my-0"
-        disabled={!!account}
       >
         {account
           ? `${account.address.slice(0, 6)}...${account.address.slice(-4)}`
-          : "Connect Wallet"}
+          : 'Connect Wallet'}
       </Button>
       {account && (
         <Button

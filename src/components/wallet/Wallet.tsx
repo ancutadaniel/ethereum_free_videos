@@ -1,14 +1,11 @@
+// Wallet.tsx
 import { useEffect } from "react";
 import { useWallet } from "../../contexts/WalletContext";
+import Button from "../UI/Button";
 
 const Wallet = () => {
-  const {
-    account,
-    notifications,
-    connectWallet,
-    disconnectWallet,
-    handleNotification,
-  } = useWallet();
+  const { account, notifications, connectWallet, disconnectWallet } =
+    useWallet();
 
   useEffect(() => {
     console.log(notifications);
@@ -26,21 +23,13 @@ const Wallet = () => {
           <div>
             <p>{account.ens?.name || account.address}</p>
           </div>
-          <button onClick={() => disconnectWallet()}>Disconnect</button>
-          <button
-            onClick={() =>
-              handleNotification({
-                type: "hint",
-                message: "This is a custom hint notification!",
-                autoDismiss: 2000,
-              })
-            }
-          >
+          <Button onClick={() => disconnectWallet()}>Disconnect</Button>
+          <Button onClick={() => console.log(notifications)}>
             Custom Notification
-          </button>
+          </Button>
+          <Button onClick={connectWallet}>Connect</Button>
         </>
       )}
-      <button onClick={connectWallet}>Connect</button>
     </div>
   );
 };
