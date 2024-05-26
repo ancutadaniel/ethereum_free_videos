@@ -1,6 +1,6 @@
 import React, { useState, FC } from "react";
 import MenuButton from "../MenuButton/MenuButton";
-import WalletConnectButton from "../Wallet/WalletConnectButton";
+import WalletConnectButton from "../wallet/WalletConnectButton"
 import logo from "../../assets/logo.webp";
 import ThemeToggleButton from "../UI/ThemeToggleButton";
 import MenuItems from "../MenuItems/MenuItems";
