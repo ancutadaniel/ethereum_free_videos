@@ -10,7 +10,6 @@ import {
 import {
   useConnectWallet,
   useNotifications,
-  useWallets,
 } from "@web3-onboard/react";
 import { ethers } from "ethers";
 import type { CustomNotification, Notification } from "@web3-onboard/core";
@@ -58,7 +57,6 @@ declare global {
 }
 
 export const WalletProvider: FC<{ children: ReactNode }> = ({ children }) => {
-  const connectedWallets = useWallets();
   const [{ wallet }, connect, disconnect] = useConnectWallet();
   const [account, setAccount] = useState<Account | null>(null);
   const [notifications, customNotification] = useNotifications();
