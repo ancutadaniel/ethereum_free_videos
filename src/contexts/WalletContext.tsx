@@ -137,18 +137,6 @@ export const WalletProvider: FC<{ children: ReactNode }> = ({ children }) => {
     }
   }, [wallet, updateAccountInfo]);
 
-  useEffect(() => {
-    if (!connectedWallets.length) return;
-    const connectedWalletsLabelArray = connectedWallets.map(
-      ({ label }) => label
-    );
-    console.log(connectedWalletsLabelArray);
-  }, [connectedWallets]);
-
-  useEffect(() => {
-    console.log(notifications);
-  }, [notifications]);
-
   const connectWallet = useCallback(() => connect(), [connect]);
 
   const disconnectWallet = useCallback(() => {

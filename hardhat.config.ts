@@ -3,8 +3,8 @@ import "@nomicfoundation/hardhat-toolbox";
 import "@typechain/hardhat";
 import "dotenv/config";
 
-const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY || "";
-const SEPOLIA_PRIVATE_KEY = process.env.SEPOLIA_PRIVATE_KEY || "";
+const ALCHEMY_API_KEY = process.env.REACT_APP_ALCHEMY_API_KEY || "";
+const SEPOLIA_PRIVATE_KEY = process.env.METAMASK_SEPOLIA_PRIVATE_KEY || "";
 
 // Test task
 task("balance", "Prints an account's balance")
