@@ -129,7 +129,6 @@ const FormVideo: FC<{
 
       try {
         const txResponse = await signer.sendTransaction(transaction);
-        
 
         handleNotification({
           eventCode: "transactionPending",
@@ -140,7 +139,7 @@ const FormVideo: FC<{
         await txResponse.wait();
 
         console.log(txResponse);
-        
+
         handleNotification({
           eventCode: "transactionSent",
           type: "success",
@@ -157,7 +156,7 @@ const FormVideo: FC<{
         setLoading(false);
       }
     },
-    [provider, contract, signer, formData.title, handleNotification]
+    [provider, contract, signer, formData.title, nonce, handleNotification]
   );
 
   const { handleFileUpload } = useHelia(async (cid: string) => {

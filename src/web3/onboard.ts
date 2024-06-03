@@ -1,5 +1,4 @@
 import Onboard from "@web3-onboard/core";
-import gas from '@web3-onboard/gas'
 
 import wallets from "./modules/index";
 import chains from "./chains/chains";
@@ -39,12 +38,3 @@ const onboard = Onboard({
 });
 
 export default onboard;
-
-
-// subscribe to a single chain for estimates using the default poll rate of 5 secs
-// API key is optional and if provided allows for faster poll rates
-export const ethMainnetGasBlockPrices = gas.stream({
-  chains: ['0x1'],
-  // apiKey: dappId,
-  endpoint: 'blockPrices'
-})
