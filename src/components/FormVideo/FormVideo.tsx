@@ -8,7 +8,7 @@ import {
   useRef,
 } from "react";
 import Button from "../UI/Button";
-import { ethers, BigNumber } from "ethers";
+import { BigNumberish, EventLog } from "ethers";
 import useHelia from "../../hooks/useHelia";
 import { useWallet } from "../../contexts/WalletContext";
 
@@ -20,13 +20,13 @@ interface FormData {
 
 const FormVideo: FC<{
   onVideoAdded: (video: {
-    id: BigNumber;
+    id: BigNumberish;
     title: string;
     hash: string;
     author: string;
   }) => void;
 }> = ({ onVideoAdded }) => {
-  const { provider, contract, handleNotification, signer } = useWallet();
+  const { provider, contract, nonce, signer, handleNotification } = useWallet();
   const [loading, setLoading] = useState<boolean>(false);
   const [formData, setFormData] = useState<FormData>({
     title: "",
@@ -49,11 +49,11 @@ const FormVideo: FC<{
 
   const handleVideoAdded = useCallback(
     (
-      id: BigNumber,
+      id: BigNumberish,
       hash: string,
       title: string,
       author: string,
-      event: ethers.Event
+      event: EventLog
     ) => {
       if (
         !latestBlockNumberRef.current ||
@@ -117,27 +117,20 @@ const FormVideo: FC<{
           "Blockchain provider, contract, or signer not available."
         );
 
-      const feeData = await provider.getFeeData();
-      const nonce = await signer.getTransactionCount();
-      const maxFeePerGas =
-        feeData.maxFeePerGas || ethers.utils.parseUnits("10", "gwei");
-      const maxPriorityFeePerGas =
-        feeData.maxPriorityFeePerGas || ethers.utils.parseUnits("1", "gwei");
-
       const transaction = {
-        to: contract.address,
+        to: contract.target,
         data: contract.interface.encodeFunctionData("uploadVideo", [
           cid,
           formData.title,
         ]),
-        maxFeePerGas,
-        maxPriorityFeePerGas,
         nonce,
-        value: ethers.utils.parseEther("0"),
+        value: 0,
       };
 
       try {
         const txResponse = await signer.sendTransaction(transaction);
+        
+
         handleNotification({
           eventCode: "transactionPending",
           type: "pending",
@@ -145,6 +138,9 @@ const FormVideo: FC<{
           autoDismiss: 5000,
         });
         await txResponse.wait();
+
+        console.log(txResponse);
+        
         handleNotification({
           eventCode: "transactionSent",
           type: "success",
@@ -152,15 +148,14 @@ const FormVideo: FC<{
           autoDismiss: 5000,
         });
       } catch (error) {
-          handleNotification({
-            eventCode: "transactionError",
-            type: "error",
-            message: `MetaMask Tx Signature: User denied transaction signature.`,
-            autoDismiss: 5000,
-          });
-          setLoading(false);
-        }
-      
+        handleNotification({
+          eventCode: "transactionError",
+          type: "error",
+          message: `MetaMask Tx Signature: User denied transaction signature.`,
+          autoDismiss: 5000,
+        });
+        setLoading(false);
+      }
     },
     [provider, contract, signer, formData.title, handleNotification]
   );
