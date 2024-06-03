@@ -31,12 +31,12 @@ const chains = [
     label: 'Arbitrum',
     rpcUrl: 'https://rpc.ankr.com/arbitrum',
   },
-  {
-    id: '0xaa36a7',
-    token: 'ETH',
-    label: 'Sepolia',
-    rpcUrl: 'https://rpc.sepolia.org',
-  },
+  // {
+  //   id: '0xaa36a7',
+  //   token: 'ETH',
+  //   label: 'Sepolia',
+  //   rpcUrl: 'https://rpc.sepolia.org',
+  // },
   {
     id: '0x7A69',
     token: 'ETH',
