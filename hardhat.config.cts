@@ -1,4 +1,4 @@
-import { task } from "hardhat/config";
+import { HardhatUserConfig, task } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import "@typechain/hardhat";
 import "dotenv/config";
@@ -9,11 +9,10 @@ const SEPOLIA_PRIVATE_KEY = process.env.METAMASK_SEPOLIA_PRIVATE_KEY || "";
 // Test task
 task("balance", "Prints an account's balance")
   .addParam("account", "The account's address")
-  .setAction(async ({ account }, { ethers }) => {
+  .setAction(async ({ account }, {ethers}) => {
     const balance = await ethers.provider.getBalance(account);
-    console.log(ethers.utils.formatEther(balance), "ETH");
+    console.log(ethers.formatEther(balance), "ETH");
   });
-
 
 console.log(`
   ========================================
@@ -22,10 +21,9 @@ console.log(`
 `);
 
 // npx hardhat balance --account 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
-// log 10000.0 ETH
 
-/** @type import('hardhat/config').HardhatUserConfig */
-module.exports = {
+
+const config: HardhatUserConfig = {
   solidity: {
     version: "0.8.24",
     settings: {
@@ -45,8 +43,8 @@ module.exports = {
       timeout: 60000,
       mining: {
         auto: false,
-        interval: 5000 // Increase block time to 5 seconds
-      }
+        interval: 5000, // Increase block time to 5 seconds
+      },
     },
     sepolia: {
       url: `https://eth-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}`,
@@ -54,3 +52,5 @@ module.exports = {
     },
   },
 };
+
+export default config;

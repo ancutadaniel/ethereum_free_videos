@@ -3,6 +3,12 @@ import hre from "hardhat";
 import path from "path";
 import fs from "fs";
 import axios from "axios";
+import { fileURLToPath } from 'url';
+
+// Get the current file path
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 
 const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY || "";
 
@@ -13,13 +19,14 @@ const deploy = async () => {
   // Deploy the NFT contract
   const contractFactory = await hre.ethers.getContractFactory("FreeVideos");
   const contract = await contractFactory.deploy();
-  await contract.deployed();
+  await contract.waitForDeployment();
 
   // Get deployment transaction receipt
   const receipt = await hre.ethers.provider.getTransactionReceipt(
-    contract.deployTransaction.hash
+    contract.deploymentTransaction().hash
   );
   const gasUsed = receipt.gasUsed.toString();
+
 
   let gasPrice;
   try {
@@ -54,8 +61,8 @@ const deploy = async () => {
   console.log({
     "Chain ID": (await hre.ethers.provider.getNetwork()).chainId,
     "Deploying Account": await deployer.getAddress(),
-    "Account Balance": (await deployer.getBalance()).toString(),
-    "Deployed Contract Address": contract.address,
+    "Account Balance": (await hre.ethers.provider.getBalance(deployer.address)).toString(),
+    "Deployed Contract Address": contract.target,
     "Gas Used": gasUsed,
     "Gas Price (Gwei)": gasPrice,
     "ETH Price (USD)": ethPrice,
@@ -63,10 +70,10 @@ const deploy = async () => {
     "Deployment Cost (USD)": deploymentCostInUSD,
   });
 
-  // Save configuration and contract ABI
-  updateFrontendConfiguration(
+   // Save configuration and contract ABI
+   updateFrontendConfiguration(
     (await hre.ethers.provider.getNetwork()).chainId,
-    contract.address
+    contract.target
   );
 };
 

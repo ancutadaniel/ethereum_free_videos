@@ -1,31 +1,14 @@
 {
   "compilerOptions": {
     "target": "es2020",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
-    "module": "commonjs",
+    "module": "esnext",
+    "moduleResolution": "node",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
-    "allowJs": true,
-    "allowSyntheticDefaultImports": true,
-    "noFallthroughCasesInSwitch": true,
-    "moduleResolution": "node",
-    "isolatedModules": true,
-    "noEmit": true,
-    "jsx": "react-jsx",
-    "types": ["node", "mocha"],
+    "jsx": "react-jsx"
   },
-  "include": [
-    "./src/**/*",
-    "./__helpers__/*",
-    "server/**/*",
-    "./tailwind.config.js", "test",
-  ],
-  "exclude": ["node_modules"]
+  "include": ["src", "tailwind.config.js"]
 }
