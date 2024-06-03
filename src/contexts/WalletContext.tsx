@@ -8,7 +8,13 @@ import {
   useMemo,
 } from "react";
 import { useConnectWallet, useNotifications } from "@web3-onboard/react";
-import { BigNumberish, BrowserProvider, Contract, JsonRpcSigner, ethers } from "ethers";
+import {
+  BigNumberish,
+  BrowserProvider,
+  Contract,
+  JsonRpcSigner,
+  ethers,
+} from "ethers";
 import type { CustomNotification, WalletState } from "@web3-onboard/core";
 import FreeVideos from "../contracts/FreeVideos.json";
 import config from "../contracts/config.json";
@@ -42,16 +48,25 @@ const MESSAGES = {
 
 const WalletContext = createContext<WalletContextType | null>(null);
 
-export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const WalletProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const [{ wallet, connecting }, connect, disconnect] = useConnectWallet();
   const [, customNotification] = useNotifications();
-  const [provider, setProvider] = useState<BrowserProvider>() 
+  const [provider, setProvider] = useState<BrowserProvider>();
   const [contract, setContract] = useState<Contract | null>(null);
   const [address, setAddress] = useState<string>("");
   const [nonce, setNonce] = useState<number>(0);
   const [gasPrice, setGasPrice] = useState<BigNumberish | null>(null);
   const [signer, setSigner] = useState<JsonRpcSigner | undefined>();
   const [balance, setBalance] = useState<bigint>();
+
+  const handleNotification = useCallback(
+    (notification: CustomNotification) => {
+      customNotification(notification);
+    },
+    [customNotification]
+  );
 
   const init = useCallback(async () => {
     if (!wallet) return;
@@ -86,7 +101,6 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       setGasPrice(gasPrice);
       setSigner(signerInstance);
       setBalance(balance);
-
     } catch (error) {
       handleNotification({
         eventCode: "error",
@@ -95,18 +109,11 @@ export const WalletProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         autoDismiss: 5000,
       });
     }
-  }, [wallet]);
+  }, [wallet, handleNotification]);
 
   useEffect(() => {
     init();
   }, [wallet, init]);
-
-  const handleNotification = useCallback(
-    (notification: CustomNotification) => {
-      customNotification(notification);
-    },
-    [customNotification]
-  );
 
   const value = useMemo(
     () => ({
