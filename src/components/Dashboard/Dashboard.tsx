@@ -23,7 +23,7 @@ interface EthereumError extends Error {
 }
 
 const Dashboard: FC<DashboardProps> = ({ selectedItem, className }) => {
-  const { provider, contract, handleNotification } = useWallet();
+  const { provider , contract, handleNotification} = useWallet()
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,34 +32,27 @@ const Dashboard: FC<DashboardProps> = ({ selectedItem, className }) => {
   const mainDashRef = useRef<HTMLDivElement>(null);
 
   const getVideos = useCallback(async () => {
-    if (!provider || !contract) {
-      return;
-    }
-
+    if (!provider || !contract) return;
+  
     setLoading(true);
-    setError(null);
-
+  
     try {
-      const latestBlockNumber = await provider.getBlockNumber();
-      const videoCount = await contract.videoCount({
-        blockTag: latestBlockNumber,
-      });
-
-      if (videoCount.isZero()) {
+      const videoCountBigInt = await contract.videoCount();
+      const videoCount = Number(videoCountBigInt);
+  
+      if (videoCount === 0) {
         setVideos([]);
         setLoading(false);
         return;
       }
-
+  
       const videoArr: Video[] = [];
-      for (let i = videoCount; i.gte(1); i = i.sub(1)) {
-        const getVideo = await contract.videos(i, {
-          blockTag: latestBlockNumber,
-        });
+      for (let i = videoCount; i >= 1; i--) {
+        const getVideo = await contract.videos(i);
         const { id, title, hash, author } = getVideo;
         videoArr.push({ id, title, hash, author });
       }
-
+  
       setVideos(videoArr);
       if (videoArr.length > 0) {
         setSelectedVideo(videoArr[0]);
@@ -76,6 +69,7 @@ const Dashboard: FC<DashboardProps> = ({ selectedItem, className }) => {
       setLoading(false);
     }
   }, [provider, contract, handleNotification]);
+  
 
   useEffect(() => {
     getVideos();

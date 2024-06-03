@@ -1,33 +1,22 @@
-// Wallet.tsx
-import { useEffect } from "react";
 import { useWallet } from "../../contexts/WalletContext";
 import Button from "../UI/Button";
 
 const Wallet = () => {
-  const { account, notifications, connectWallet, disconnectWallet } =
-    useWallet();
-
-  useEffect(() => {
-    console.log(notifications);
-  }, [notifications]);
+  const { address, wallet, connecting, connect, disconnect } = useWallet();
 
   return (
     <div>
-      {account && (
+      {address && wallet && (
         <>
-          {account.ens?.avatar && (
-            <div>
-              <p>{account.ens.avatar}</p>
-            </div>
-          )}
           <div>
-            <p>{account.ens?.name || account.address}</p>
+            <p>{address}</p>
           </div>
-          <Button onClick={() => disconnectWallet()}>Disconnect</Button>
-          <Button onClick={() => console.log(notifications)}>
-            Custom Notification
+          <Button disabled={connecting} onClick={() => disconnect(wallet)}>
+            Disconnect
           </Button>
-          <Button onClick={connectWallet}>Connect</Button>
+          <Button disabled={connecting} onClick={connect}>
+            Connect
+          </Button>
         </>
       )}
     </div>
